@@ -1,0 +1,14 @@
+namespace: rangeid
+name: icinga
+version: 0.0.1
+readme: README.md
+
+authors:
+    - Angelo Conforti <angeloxx@angeloxx.it>
+
+description: Implements Icinga API
+license:
+    - BSD-3-Clause
+
+repository: "https://github.com/rangeid/ansible-icinga-collection"
+issues: "https://github.com/rangeid/ansible-icinga-collection/issues"

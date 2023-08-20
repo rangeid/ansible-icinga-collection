@@ -1,0 +1,34 @@
+- name: "test-playbook | Set Maintenance"
+  hosts: localhost
+  tasks:
+  # - rangeid.icinga.maintenance:
+  #     icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+  #     icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+  #     icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+  #     maintenance: enabled
+  #     services: "*"
+  #     duration: "10m 30s"
+  #     hostname: "EQS-MALWARE-A"
+  - name: "Set Maintenance"
+    rangeid.icinga.maintenance:
+      icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+      icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+      icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+      maintenance: enabled
+      duration: "10m 30s"
+      hostname: "EQS-MALWARE-A"
+  - name: "Remove Maintenance"
+    rangeid.icinga.maintenance:
+      icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+      icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+      icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+      maintenance: disabled
+      hostname: "EQS-MALWARE-A"
+  - name: "Check Service"
+    rangeid.icinga.check_service:
+      icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+      icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+      icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+      hostname: "EQS-MALWARE-A"
+      service: "DISK-TMP"
+      timeout: 10
