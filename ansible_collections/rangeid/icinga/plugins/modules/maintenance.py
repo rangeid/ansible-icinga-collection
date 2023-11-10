@@ -71,7 +71,8 @@ def main():
         maintenance=dict(default="enabled", type="str",
                          choices=['enabled', 'disabled']),
         author=dict(default="Ansible", required=False, type="str"),
-        service=dict(required=False, type="str", aliases=["services"]),
+        service=dict(required=False, type="str"),
+        services=dict(required=False, type="list", elements="str"),
         message=dict(required=False, type="str"),
         duration=dict(required=False, type="str"),
         hostname=dict(required=False, aliases=["name"]),
@@ -101,6 +102,7 @@ def main():
     maintenance = module.params.get("maintenance")
     author = module.params.get("author")
     service = module.params.get("service")
+    services = module.params.get("services")
     message = module.params.get("message")
     duration = module.params.get("duration")
     check_before = module.params.get("check_before")
@@ -134,6 +136,8 @@ def main():
                                username=icinga_username,
                                password=icinga_password)
 
+    if services is not None:
+        service = services
     try:
         if maintenance == "enabled":
             status = icinga_client.set_maintenance_mode(
@@ -147,7 +151,8 @@ def main():
 
             if status["changes"] > 0:
                 result['changed'] = True
-            result["message"] = status["status"]
+            result["message"] = status["changes_details"]
+            result["services"] = status["services"]
 
         if maintenance == "disabled":
             status = icinga_client.clear_maintenance_mode(
@@ -158,7 +163,8 @@ def main():
 
             if status["changes"] > 0:
                 result['changed'] = True
-            result["message"] = status["status"]
+            result["message"] = status["changes_details"]
+            result["services"] = status["services"]
 
     except IcingaAuthenticationException:
         module.fail_json(

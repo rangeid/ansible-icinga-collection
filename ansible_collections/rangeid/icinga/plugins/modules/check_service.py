@@ -3,10 +3,7 @@
 # Copyright: (c) 2023, Angelo Conforti (angeloxx@angeloxx.it)
 
 from __future__ import absolute_import, division, print_function
-from ansible.module_utils._text import to_text
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.urls import fetch_url, basic_auth_header
-from ansible_collections.rangeid.icinga.plugins.module_utils.time_utils import time_utils
 from ansible_collections.rangeid.icinga.plugins.module_utils.minicinga2 import IcingaMiniClass, IcingaAuthenticationException, IcingaNoSuchObjectException, IcingaFailedService
 
 __metaclass__ = type
@@ -17,7 +14,7 @@ DOCUMENTATION = """
 module: branch
 author:
     - "Angelo Conforti (@angeloxx)"
-description: Force check icinga services
+description: Force check icinga service
 module: branch
 options:
   icinga_server:
@@ -28,22 +25,24 @@ options:
     required: true
   icinga_username:
     description:
-    - The Bitbucket user with branch creation and deletion rights
+    - The Icinga user with branch creation and deletion rights
     type: str
     required: true
   icinga_password:
     description:
-    - The Bitbucket user's password
+    - The Icinga user's password
     type: str
     required: true
   service:
     description:
-    - regexp or name of involved services. If omitted, only the host will be configured
+    - The service name
     type: str
     required: true
   timeout:
     description:
-    - wait time after the forced check. If zero the service check will be issued without checking the real service status, if set the service will be checked during this time and the module fails if the service is failed
+    - wait time after the forced check. If zero the service check will be
+      issued without checking the real service status, if set the service will
+      be checked during this time and the module fails if the service is failed
     type: int
     required: false
 """
@@ -62,7 +61,8 @@ def main():
     result = dict(
         changed=False,
         original_message='',
-        message=''
+        message='',
+        service_status="OK"
     )
 
     module = AnsibleModule(
@@ -100,7 +100,8 @@ def main():
         result = dict(
             changed=False,
             original_message='',
-            message=status
+            message=status,
+            service_status=icinga_client.get_last_service_status()
         )
 
     except IcingaAuthenticationException:
@@ -113,7 +114,9 @@ def main():
         
     except IcingaFailedService as e:
         module.fail_json(
-            msg=f"One or more services are down ({e.message})")
+            msg=f"One or more services are down ({e.message})",
+            service_status=icinga_client.get_last_service_status()
+            )
 
     module.exit_json(**result)
 

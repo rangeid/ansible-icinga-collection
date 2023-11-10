@@ -1,34 +1,23 @@
 - name: "test-playbook | Set Maintenance"
   hosts: localhost
   tasks:
-    - name: "Set Maintenance for the node and services by wildcard"
+    - name: "Set node maintenance"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
         icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
         icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
         maintenance: enabled
-        service: "LO*"
         duration: "1m 30s"
         hostname: "EQS-CA"
-        message: "Partial"
-      register: one
-
-    - debug:
-        msg: "{{ one }}"
-
-    - name: "Set Maintenance for the node and services by list"
+        message: "Patching started"
+    - name: "Sleep"
+      ansible.builtin.pause:
+        seconds: 5
+    - name: "Remove node maintenance"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
         icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
         icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
-        maintenance: enabled
-        services:
-          - LOAD
-          - PING
-        duration: "1m 30s"
+        maintenance: disabled
         hostname: "EQS-CA"
-        message: "Partial"
-      register: two
 
-    - debug:
-        msg: "{{ two }}"

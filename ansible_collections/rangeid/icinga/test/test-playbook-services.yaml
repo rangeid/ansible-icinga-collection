@@ -1,0 +1,14 @@
+- name: "test-playbook | Set Maintenance"
+  hosts: localhost
+  tasks:
+    - name: "Set Maintenance for the node"
+      rangeid.icinga.maintenance:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        maintenance: enabled
+        services: "*"
+        duration: "1m 30s"
+        hostname: "EQS-CA"
+        message: "All services maintenance"
+
