@@ -1,0 +1,17 @@
+- name: "test-playbook | Check service"
+  hosts: localhost
+  tasks:
+  - name: "Check Service"
+    rangeid.icinga.check_service:
+      icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+      icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+      icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+      hostname: "EQS-CA"
+      service: "TEST-OPENXPKI"
+      timeout: 10
+    failed_when: false
+    register: service_status
+
+  - name: "Check Service: Registered variable"
+    ansible.builtin.debug:
+      msg: "{{ service_status }}"

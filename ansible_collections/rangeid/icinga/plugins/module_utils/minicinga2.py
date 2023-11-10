@@ -83,7 +83,6 @@ class IcingaMiniClass():
             _ret.append(_service["attrs"]["name"])
         return _ret
 
-
     def check_service(self, host: str, service: str, timeout: int = 10):
         _data = {
             "type": "Service",
@@ -94,11 +93,11 @@ class IcingaMiniClass():
             method="POST",
             data=_data,
         )
-    
+
         if timeout == 0:
             # Set and forget it
             return _response["status"]
-        
+
         # Start to poll service status until timeout
         for _second in range(timeout):
             _service_status = self._get_service_status(host=host,
@@ -107,8 +106,9 @@ class IcingaMiniClass():
                 return "Service is up"
             time.sleep(1)
 
-        raise IcingaFailedService(f"Service {service} state is {IcingaStatus.serviceStateToString(_service_status)} after timeout of {timeout} seconds")
-        
+        raise IcingaFailedService(
+            f"Service {service} state is {IcingaStatus.serviceStateToString(_service_status)} after timeout of {timeout} seconds")
+
     def _get_maintenance_host_mode(self, host):
         _data = {
             "type": "Host",
@@ -139,7 +139,7 @@ class IcingaMiniClass():
                 _data = {
                     "downtime": _downtime["name"],
                     "type": "Downtime",
-                    #"filter": f"host.name==\"{host}\"",
+                    # "filter": f"host.name==\"{host}\"",
                 }
 
                 _results = self._send_request(
@@ -147,20 +147,19 @@ class IcingaMiniClass():
                     method='POST',
                     data=_data
                 )
-                _ret['status'] = " ".join([_ret['status'],_results["results"][0]['status']]).strip()
+                _ret['status'] = " ".join([_ret['status'], _results["results"][0]['status']]).strip()
 
         return _ret
 
     def set_service_maintenance_mode(self, host: str,
-                             duration_seconds: int = 0,
-                             service: str = "all",
-                             author="Ansible",
-                             comment="Downtime",
-                             check_before: bool = False):
+                                     duration_seconds: int = 0,
+                                     service: str = "all",
+                                     author="Ansible",
+                                     comment="Downtime",
+                                     check_before: bool = False):
 
         if check_before:
             pass
-
 
         _ret = {
             "status": "",
@@ -186,7 +185,6 @@ class IcingaMiniClass():
         # _results = json.loads(_response.read())
         if len(_results["results"]) == 0:
             raise IcingaNoSuchObjectException()
-
 
         _ret["status"] = _results["results"][0]["status"]
         return _ret
@@ -214,7 +212,7 @@ class IcingaMiniClass():
             "all_services": "1" if (services == "all" or services == "*") else "0",
             "start_time": datetime.datetime.now().timestamp(),
             "end_time": (datetime.datetime.now() + datetime.timedelta(
-                seconds=duration_seconds)).timestamp(), 
+                seconds=duration_seconds)).timestamp(),
             "comment": f"{comment}", "author": f"{author}",
             "duration": duration_seconds, "child_hosts": 0
         }
@@ -245,8 +243,10 @@ class IcingaMiniClass():
                 _services = self._get_service_list(host=host, service_pattern=services)
                 for _service in _services:
                     # Set service maintenance mode
-                    _result = self.set_service_maintenance_mode(host=host, service=_service, author=author, comment=comment,
-                                                      duration_seconds=duration_seconds, check_before=check_before)
+                    _result = self.set_service_maintenance_mode(host=host, service=_service, author=author,
+                                                                comment=comment,
+                                                                duration_seconds=duration_seconds,
+                                                                check_before=check_before)
 
                     _ret["changes"] = _ret["changes"] + 1
                     _ret["statuses"].append(_result["status"])
@@ -255,12 +255,13 @@ class IcingaMiniClass():
             elif isinstance(services, list):
                 for _service in services:
                     # Set service maintenance mode
-                    _result = self.set_service_maintenance_mode(host=host, service=_service, author=author, comment=comment,
-                                                          duration_seconds=duration_seconds, check_before=check_before)
+                    _result = self.set_service_maintenance_mode(host=host, service=_service, author=author,
+                                                                comment=comment,
+                                                                duration_seconds=duration_seconds,
+                                                                check_before=check_before)
                     _ret["changes"] = _ret["changes"] + 1
                     _ret["statuses"].append(_result["status"])
                     _ret["services"].append(_service)
-
 
         _ret["changes_details"] = ", ".join(_ret["statuses"])
         return _ret
@@ -274,7 +275,7 @@ class IcingaMiniClass():
             data=self.module.jsonify(data),
             headers=_headers,
             verify=self.certpath
-            )
+        )
         # _response, _info = fetch_url(
         #     self.module,
         #     f"{self.url}{url}",
@@ -300,13 +301,13 @@ class IcingaAuthenticationException(Exception):
 
 
 class IcingaFailedService(Exception):
-    def __init__(self,  message="One or more services are down"):
+    def __init__(self, message="One or more services are down"):
         self.message = message
         super().__init__(self.message)
 
 
 class IcingaNoSuchObjectException(Exception):
-    def __init__(self,  message="Unable to find the object"):
+    def __init__(self, message="Unable to find the object"):
         self.message = message
         super().__init__(self.message)
 
