@@ -23,17 +23,17 @@ options:
   icinga_server:
     description:
     - The Icinga URL in the format https://<server> or
-      https://<server>/<context>
+      https://<server>:<port>/<context>
     type: url
     required: true
   icinga_username:
     description:
-    - The Bitbucket user with branch creation and deletion rights
+    - The Icinga username
     type: str
     required: true
   icinga_password:
     description:
-    - The Bitbucket user's password
+    - The Icinga user's password
     type: str
     required: true
   maintenance:
@@ -47,7 +47,8 @@ options:
     required: false
   service:
     description:
-    - regexp or name of involved services. If omitted, only the host will be configured
+    - regexp or name of involved services. If omitted, only the host will be configured. If all or "*", all services will 
+      be set in maintenance mode
     type: str
     required: false
   message:
@@ -57,9 +58,22 @@ options:
     required: false
   duration:
     description:
-    - the maintenance window in 
+    - the maintenance window in dhms format, eg. 1d, 30m 40s, 1h 30m
     type: str
     required: false
+  check_before:
+    description:
+    - check before set or unset maintenance
+    type: bool
+    default false
+    required: false
+  stop_on_failed_service:
+    description:
+    - if check_before is enabled, do not perform changes if one or more checks fails
+    type: bool
+    default false
+    required: false
+
 """
 
 
@@ -78,6 +92,7 @@ def main():
         hostname=dict(required=False, aliases=["name"]),
         hostgroup=dict(required=False),
         check_before=dict(default=False, type="bool"),
+        stop_on_failed_service=dict(default=False, type="bool"),
         # validate_certs=dict(default=True, type="bool"),
 
     )
@@ -106,6 +121,7 @@ def main():
     message = module.params.get("message")
     duration = module.params.get("duration")
     check_before = module.params.get("check_before")
+    stop_on_failed_service = module.params.get("stop_on_failed_service")
 
     # validate_certs = module.params.get("validate_certs")
     if hostname and hostgroup:
@@ -146,7 +162,8 @@ def main():
                 services=service,
                 author=author,
                 comment=message,
-                check_before=check_before
+                check_before=check_before,
+                stop_on_failed_service=stop_on_failed_service
             )
 
             if status["changes"] > 0:
@@ -170,13 +187,19 @@ def main():
         module.fail_json(
             msg=f"Authentication error, please double check the '{icinga_username}' user")
 
-    except IcingaNoSuchObjectException:
-        module.fail_json(
-            msg=f"Unable to find the host {hostname}")
+    except IcingaNoSuchObjectException as e:
+        if e.customMessage:
+            module.fail_json(msg=e.message)
+        else:
+            module.fail_json(
+                msg=f"Unable to find the host {hostname}")
         
     except IcingaFailedService as e:
-        module.fail_json(
-            msg=f"One or more services are down ({e.message})")
+        if e.customMessage:
+            module.fail_json(msg=e.message)
+        else:
+            module.fail_json(
+                msg=f"One or more services are down ({e.message})")
 
 
     module.exit_json(**result)

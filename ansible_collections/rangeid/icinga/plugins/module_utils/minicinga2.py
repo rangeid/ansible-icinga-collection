@@ -29,11 +29,16 @@ class IcingaMiniClass():
     #   response, info = fetch_url(module, f"{icinga_server}/v1/actions/schedule-downtime", headers=headers, method='POST',
     #                     data=json.dumps(data), timeout=30)
 
-    def _check_all_services(self, host, timeout: int = 10):
+    def _check_all_services(self, host, timeout: int = 10, exceptOnFailure: bool = False):
         """
         Check all host's services and return only on timeout (with error) or when
         all services are green
         """
+        _ret = dict(
+            failed = [],
+            success = []
+        )
+
         _data = {
             "type": "Host",
             "filter": f"host.name==\"{host}\"",
@@ -48,9 +53,15 @@ class IcingaMiniClass():
                 if _service["attrs"]["last_state"] == 0:
                     pass
                 else:
-                    self._check_service(host=host,
+                    result = self.check_service(host=host,
                                         service=_service["attrs"]["name"],
-                                        timeout=timeout)
+                                        timeout=timeout, exceptOnFailure=exceptOnFailure)
+                    if result == False:
+                        _ret["failed"].append(_service["attrs"]["name"])
+                    else:
+                        _ret["success"].append(_service["attrs"]["name"])
+        return _ret
+
 
     def _get_service_status(self, host: str, service: str):
         self.last_service_status = 3
@@ -67,6 +78,12 @@ class IcingaMiniClass():
         return _response['results'][0]["attrs"]["last_state"]
 
     def _get_service_list(self, host: str, service_pattern: str):
+        """
+        Get list ov services based on hots and provided pattern
+        :param host: Icinga hostname
+        :param service_pattern: pattern in glob format
+        :return: list of services
+        """
         _data = {
             "type": "Service",
             "filter": f"\"{host}\"==host.name && match (pattern,service.name)",
@@ -83,7 +100,7 @@ class IcingaMiniClass():
             _ret.append(_service["attrs"]["name"])
         return _ret
 
-    def check_service(self, host: str, service: str, timeout: int = 10):
+    def check_service(self, host: str, service: str, timeout: int = 10, exceptOnFailure: bool = True):
         _data = {
             "type": "Service",
             "filter": f"host.name==\"{host}\" && service.name==\"{service}\"",
@@ -106,8 +123,11 @@ class IcingaMiniClass():
                 return "Service is up"
             time.sleep(1)
 
-        raise IcingaFailedService(
-            f"Service {service} state is {IcingaStatus.serviceStateToString(_service_status)} after timeout of {timeout} seconds")
+        if exceptOnFailure:
+            raise IcingaFailedService(
+                f"Service {service} state is {IcingaStatus.serviceStateToString(_service_status)} after timeout of {timeout} seconds")
+        else:
+            return False
 
     def _get_maintenance_host_mode(self, host):
         _data = {
@@ -123,6 +143,21 @@ class IcingaMiniClass():
         )
 
         return _response["results"]
+
+    def _get_invalid_services(self, services : list = [],check_against : list = []):
+        """
+        Compare real service list with list provided by the user in order to check if all services exist
+        :param services: real service list
+        :param check_against: user provide service list
+        :return: list of invalid services
+        """
+        _ret = []
+
+        for _in_service in check_against:
+            if not _in_service in services:
+                _ret.append(_in_service)
+
+        return _ret
 
     def clear_maintenance_mode(self, host: str, services: str = "all", check_before: bool = False) -> bool:
         _ret = {
@@ -192,12 +227,16 @@ class IcingaMiniClass():
     def set_maintenance_mode(self, host: str,
                              duration_seconds: int = 0,
                              services: str = "all",
-                             author="Ansible",
-                             comment="Downtime",
-                             check_before: bool = False):
+                             author: str ="Ansible",
+                             comment: str ="Downtime",
+                             check_before: bool = False,
+                             stop_on_failed_service: bool = False):
 
         if check_before:
-            self._check_all_services(host=host)
+            _results = self._check_all_services(host=host)
+            if len(_results["failed"]) > 0 and stop_on_failed_service:
+                failed_services = ", ".join(_results["failed"])
+                raise IcingaFailedService(f"One or more services are still failed: {failed_services}")
 
         _ret = {
             "status": "",
@@ -216,6 +255,15 @@ class IcingaMiniClass():
             "comment": f"{comment}", "author": f"{author}",
             "duration": duration_seconds, "child_hosts": 0
         }
+
+        # If service list were specified, check if all services exists
+        if _data["all_services"] != "1":
+            _services = self._get_service_list(host=host, service_pattern=services)
+            if isinstance(services, list):
+                _invalid_services = self._get_invalid_services(services=_services,check_against=services)
+                if len(_invalid_services) > 0:
+                    _invalid_services_list = ", ".join(_invalid_services)
+                    raise IcingaNoSuchObjectException(message=f"Unable to find one or more services: {_invalid_services_list}")
 
         _results = self._send_request(
             url="/v1/actions/schedule-downtime",
@@ -240,7 +288,7 @@ class IcingaMiniClass():
         else:
             # Select services
             if isinstance(services, str):
-                _services = self._get_service_list(host=host, service_pattern=services)
+
                 for _service in _services:
                     # Set service maintenance mode
                     _result = self.set_service_maintenance_mode(host=host, service=_service, author=author,
@@ -301,15 +349,28 @@ class IcingaAuthenticationException(Exception):
 
 
 class IcingaFailedService(Exception):
-    def __init__(self, message="One or more services are down"):
-        self.message = message
+    customMessage = False
+    defaultMessage = "One or more services are down"
+    def __init__(self, message=None):
+        if message == None:
+            self.message = self.defaultMessage
+        else:
+            self.message = message
+            self.customMessage = True
         super().__init__(self.message)
 
 
 class IcingaNoSuchObjectException(Exception):
-    def __init__(self, message="Unable to find the object"):
-        self.message = message
+    customMessage = False
+    defaultMessage = "Unable to find the object"
+    def __init__(self, message=None):
+        if message == None:
+            self.message = self.defaultMessage
+        else:
+            self.message = message
+            self.customMessage = True
         super().__init__(self.message)
+
 
 
 class IcingaStatus():

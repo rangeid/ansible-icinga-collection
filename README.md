@@ -4,10 +4,10 @@ icinga is an Ansible collection to manage maintenance and checks in Icinga. The 
 * set maintenance mode for an host or a host and its services
 * check the status of a host's service
 
-### rangeid.icinga.maintenance: set host and node maintenance
+### rangeid.icinga.maintenance: set host and services maintenance
 
 #### Node maintenance
-    - name: "Set node maintenance"
+    - name: "test-playbook | Set node maintenance"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
         icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
@@ -19,7 +19,7 @@ icinga is an Ansible collection to manage maintenance and checks in Icinga. The 
     - name: "Sleep"
       ansible.builtin.pause:
         seconds: 5
-    - name: "Remove node maintenance"
+    - name: "test-playbook | Remove node maintenance"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
         icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
@@ -31,9 +31,9 @@ If host doesn't exist:
 
     TASK [Set node maintenance] *********************
     fatal: [localhost]: FAILED! => changed=false
-      msg: Unable to find the host EQS-DOESNT-EXIST
+      msg: Unable to find the host EQS-CA
 
-#### Node and service maintenance
+#### Node and all services maintenance
 
     - name: "test-playbook | Set Maintenance"
       hosts: localhost
@@ -44,12 +44,66 @@ If host doesn't exist:
             icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
             icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
             maintenance: enabled
-            services: "*"
+            service: "all"
             duration: "10m 30s"
             hostname: "EQS-CA"
 
 
-#### Node and all services maintenance
+#### Node and some services maintenance
+
+You can use "service" and put in maintenance one or more services using wildcard:
+
+    - name: "test-playbook | Set Maintenance for the node and services by wildcard"
+      rangeid.icinga.maintenance:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        maintenance: enabled
+        service: "LO*"
+        duration: "1m 30s"
+        hostname: "EQS-CA"
+        message: "Partial maintenance"
+
+this task returns a message like:
+
+    TASK [debug] ************************************
+    ok: [localhost] =>
+      msg:
+        changed: true
+        failed: false
+        message: Successfully scheduled downtime 'EQS-CA!80277054-57af-47e0-9350-d65593b312da' for object 'EQS-CA'., Successfully scheduled downtime 'EQS-CA!LOAD!97110cc3-632b-4470-b004-fef16d761ce3' for object 'EQS-CA!LOAD'., Successfully scheduled downtime 'EQS-CA!LOCAL-SSL-OPENXPKI!0943d16d-90b2-4782-894c-4ae277ce5522' for object 'EQS-CA!LOCAL-SSL-OPENXPKI'.
+        original_message: ''
+        services:
+        - LOAD
+        - LOCAL-SSL-OPENXPKI
+
+or you can use "services" and put in maintenance one or more services listing it:
+
+    - name: "test-playbook | Set Maintenance for the node and services by list"
+      rangeid.icinga.maintenance:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        maintenance: enabled
+        services:
+          - LOAD
+          - PING
+        duration: "1m 30s"
+        hostname: "EQS-CA"
+        message: "Partial maintenance"
+
+this task returns a message like:
+
+    TASK [debug] ************************************
+    ok: [localhost] =>
+      msg:
+        changed: true
+        failed: false
+        message: Successfully scheduled downtime 'EQS-CA!1f84f892-b5d0-483e-9e02-022cff55acec' for object 'EQS-CA'., Successfully scheduled downtime 'EQS-CA!LOAD!d2104177-b4f5-42e7-8690-d95560f6cd60' for object 'EQS-CA!LOAD'., Successfully scheduled downtime 'EQS-CA!PING!143639bc-6728-49f8-a1a1-f0245e305839' for object 'EQS-CA!PING'.
+        original_message: ''
+        services:
+        - LOAD
+        - PING
 
 
 ### rangeid.icinga.check_service: Force host service check with a timeout
@@ -79,5 +133,5 @@ or, when failed_when is set to false:
         changed: false
         failed: false
         failed_when_result: false
-        msg: One or more services are down (Service TEST-OPENXPKI state is CRITICAL after timeout of 10 seconds)
+        message: One or more services are down (Service TEST-OPENXPKI state is CRITICAL after timeout of 10 seconds)
         service_status: 2.0
