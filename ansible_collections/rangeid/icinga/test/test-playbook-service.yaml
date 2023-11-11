@@ -1,0 +1,51 @@
+- name: "test-playbook | Set Maintenance"
+  hosts: localhost
+  tasks:
+    - name: "test-playbook | Set Maintenance for the node and services by wildcard"
+      rangeid.icinga.maintenance:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        maintenance: enabled
+        service: "LO*"
+        duration: "1m 30s"
+        hostname: "EQS-CA"
+        message: "Partial"
+      register: one
+
+    - debug:
+        msg: "{{ one }}"
+
+    - name: "test-playbook | Set Maintenance for the node and services by list"
+      rangeid.icinga.maintenance:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        maintenance: enabled
+        services:
+          - LOAD
+          - PING
+        duration: "1m 30s"
+        hostname: "EQS-CA"
+        message: "Partial"
+      register: two
+
+    - debug:
+        msg: "{{ two }}"
+
+    - name: "test-playbook | Set Maintenance for the node and services by list"
+      rangeid.icinga.maintenance:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        maintenance: enabled
+        services:
+          - LOAD
+          - SERVICE_DOESNT_EXIST
+        duration: "1m 30s"
+        hostname: "EQS-CA"
+        message: "Partial"
+      register: three
+
+    - debug:
+        msg: "{{ three }}"
