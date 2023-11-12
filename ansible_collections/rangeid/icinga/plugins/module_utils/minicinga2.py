@@ -324,12 +324,6 @@ class IcingaMiniClass():
             headers=_headers,
             verify=self.certpath
         )
-        # _response, _info = fetch_url(
-        #     self.module,
-        #     f"{self.url}{url}",
-        #     headers=_headers, method="POST",
-        #     data=data,
-        #     timeout=30)
 
         if _response.status_code in [401, 403]:
             raise IcingaAuthenticationException
@@ -345,7 +339,15 @@ class IcingaMiniClass():
 
 
 class IcingaAuthenticationException(Exception):
-    pass
+    customMessage = False
+    defaultMessage = "Unable to authenticate"
+    def __init__(self, message=None):
+        if message == None:
+            self.message = self.defaultMessage
+        else:
+            self.message = message
+            self.customMessage = True
+        super().__init__(self.message)
 
 
 class IcingaFailedService(Exception):
