@@ -2,6 +2,7 @@
 
 icinga is an Ansible collection to manage maintenance and checks in Icinga. The module will interact with the Icinga2 Server to:
 * set maintenance mode for an host or a host and its services
+* check maintenance status
 * check the status of a host's service
 
 ### rangeid.icinga.maintenance: set host and services maintenance
@@ -105,6 +106,48 @@ this task returns a message like:
         - LOAD
         - PING
 
+You can additionally test services before put node in maintenance, stop process if a service is failed after 5 seconds and after 1 retry:
+
+    - name: "test-playbook | Set Maintenance for the node and services by list"
+      rangeid.icinga.maintenance:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        maintenance: enabled
+        services:
+          - LOAD
+          - PING
+        duration: "1m 30s"
+        hostname: "EQS-CA"
+        message: "Partial maintenance"
+        check_before:
+            enabled: true
+            stop_on_failed_service: true
+            retries: 1
+            timeout: 5
+
+### rangeid.icinga.get_state: Get maintenance status of a node
+
+    - name: "Get node status"
+      rangeid.icinga.get_state:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        hostname: "EQS-CA"
+      register: ret
+      ignore_errors: true
+
+returns:
+
+    TASK [test-playbook | Dump result] **************
+    ok: [localhost] =>
+      msg:
+        changed: false
+        failed: false
+        host_maintenance: false
+        host_status: 0.0
+        message: '{"acknowledgement": 0.0, "downtime_depth": 0.0, "state": 0.0}'
+        original_message: ''
 
 ### rangeid.icinga.check_service: Force host service check with a timeout
 
@@ -115,8 +158,12 @@ this task returns a message like:
         icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
         hostname: "EQS-CA"
         service: "TEST-OPENXPKI"
-        timeout: 10
-      register: service_status
+        check_before:
+          enabled: true
+          stop_on_failed_service: true
+          retries: 1
+          timeout: 2
+        register: service_status
 
 and if the check fails:
 

@@ -7,73 +7,97 @@ from ansible.module_utils._text import to_text
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.urls import fetch_url, basic_auth_header
 from ansible_collections.rangeid.icinga.plugins.module_utils.time_utils import time_utils
-from ansible_collections.rangeid.icinga.plugins.module_utils.minicinga2 import IcingaMiniClass, IcingaAuthenticationException, IcingaNoSuchObjectException, IcingaFailedService
+from ansible_collections.rangeid.icinga.plugins.module_utils.minicinga2 import IcingaMiniClass, \
+    IcingaAuthenticationException, IcingaNoSuchObjectException, IcingaFailedService
 
 __metaclass__ = type
 
-
 DOCUMENTATION = """
 ---
-module: branch
+module: maintenance
 author:
-    - "Angelo Conforti (@angeloxx)"
+- "Angelo Conforti (@angeloxx)"
 description: Perform Maintenance Operations
-module: branch
 options:
-  icinga_server:
-    description:
-    - The Icinga URL in the format https://<server> or
-      https://<server>:<port>/<context>
-    type: url
-    required: true
-  icinga_username:
-    description:
-    - The Icinga username
-    type: str
-    required: true
-  icinga_password:
-    description:
-    - The Icinga user's password
-    type: str
-    required: true
-  maintenance:
-    description:
-    - The state of the maintenance mode
-    type: choices
-    choices:
-    - enabled
-    - disabled
-    default: enabled
-    required: false
-  service:
-    description:
-    - regexp or name of involved services. If omitted, only the host will be configured. If all or "*", all services will 
-      be set in maintenance mode
-    type: str
-    required: false
-  message:
-    description:
-    - the maintenance message
-    type: str
-    required: false
-  duration:
-    description:
-    - the maintenance window in dhms format, eg. 1d, 30m 40s, 1h 30m
-    type: str
-    required: false
-  check_before:
-    description:
-    - check before set or unset maintenance
-    type: bool
-    default false
-    required: false
-  stop_on_failed_service:
-    description:
-    - if check_before is enabled, do not perform changes if one or more checks fails
-    type: bool
-    default false
-    required: false
-
+    icinga_server:
+        description:
+        - The Icinga URL in the format https://<server> or
+          https://<server>:<port>/<context>
+        type: url
+        required: true
+    icinga_username:
+        description:
+        - The Icinga username
+        type: str
+        required: true
+    icinga_password:
+        description:
+        - The Icinga user's password
+        type: str
+        required: true
+    hostname:
+        description:
+        - Icinga host object name
+        type: str
+        required: true
+    maintenance:
+        description:
+        - The state of the maintenance mode
+        type: choices
+        choices:
+        - enabled
+        - disabled
+        default: enabled
+        required: false
+    service:
+        description:
+        - regexp or name of involved services. If omitted, only the host will be configured. If all or '*', all services will 
+          be set in maintenance mode
+        type: str
+        required: false
+    services:
+        description:
+        - list of involved services
+        type: list
+        required: false
+    message:
+        description:
+        - the maintenance message
+        type: str
+        required: false
+    duration:
+        description:
+        - the maintenance window in dhms format, eg. 1d, 30m 40s, 1h 30m
+        type: str
+        required: false
+    check_before:
+        description:
+        - all about checking the services before operations
+        suboptions:
+            enabled:
+                description:
+                - check before set or unset maintenance
+                type: bool
+                default: false
+                required: false
+            stop_on_failed_service:
+                description:
+                - if check_before is enabled, do not perform changes if one or more checks fails
+                type: bool
+                default: false
+                required: false
+            retries:
+                description:
+                - retry checks on failure
+                type: int
+                default: 0
+                required: false
+            timeout:
+                description:
+                - check timeout
+                type: int
+                default: 10
+                required: false
 """
 
 
@@ -91,8 +115,13 @@ def main():
         duration=dict(required=False, type="str"),
         hostname=dict(required=False, aliases=["name"]),
         hostgroup=dict(required=False),
-        check_before=dict(default=False, type="bool"),
-        stop_on_failed_service=dict(default=False, type="bool"),
+        check_before=dict(required=False, type="dict", options=dict(
+            enabled=dict(required=False, default=False, type="bool"),
+            stop_on_failed_service=dict(required=False, default=False, type="bool"),
+            retries=dict(required=False, default=0, type="int"),
+            timeout=dict(required=False, default=10, type="int"),
+        ))
+
         # validate_certs=dict(default=True, type="bool"),
 
     )
@@ -120,13 +149,26 @@ def main():
     services = module.params.get("services")
     message = module.params.get("message")
     duration = module.params.get("duration")
-    check_before = module.params.get("check_before")
-    stop_on_failed_service = module.params.get("stop_on_failed_service")
+    check_before_root = module.params.get("check_before", {})
+    if check_before_root:
+        check_before = check_before_root.get("enabled")
+        stop_on_failed_service = check_before_root.get("stop_on_failed_service")
+        check_retries = check_before_root.get("retries")
+        check_timeout = check_before_root.get("timeout")
+    else:
+        check_before = False
+        stop_on_failed_service = False
+        check_retries = 0
+        check_timeout = 10
 
     # validate_certs = module.params.get("validate_certs")
     if hostname and hostgroup:
         module.fail_json(
             "Specify hostname/name or hostgroup")
+
+    if service and services:
+        module.fail_json(
+            "Specify service or services, both are not supported")
 
     module.run_command_environ_update = dict(
         LANG="C.UTF-8", LC_ALL="C.UTF-8",
@@ -142,15 +184,13 @@ def main():
         if duration_seconds == 0:
             module.fail_json(f"Can't convert duration='{duration}'")
 
-
-
     if not icinga_server.startswith("https://"):
         module.fail_json('Server must be https://<servername>')
 
     icinga_client = IcingaMiniClass(module=module,
-                               url=icinga_server,
-                               username=icinga_username,
-                               password=icinga_password)
+                                    url=icinga_server,
+                                    username=icinga_username,
+                                    password=icinga_password)
 
     if services is not None:
         service = services
@@ -163,7 +203,9 @@ def main():
                 author=author,
                 comment=message,
                 check_before=check_before,
-                stop_on_failed_service=stop_on_failed_service
+                stop_on_failed_service=stop_on_failed_service,
+                check_retries=check_retries,
+                check_timeout=check_timeout
             )
 
             if status["changes"] > 0:
@@ -172,10 +214,16 @@ def main():
             result["services"] = status["services"]
 
         if maintenance == "disabled":
+            # Currently services are not supported, all services will be disabled
+            if service is not None:
+                module.fail_json('The module currently doesn\'t support services disabling maintenance')
+
             status = icinga_client.clear_maintenance_mode(
                 host=hostname,
                 services=service,
-                check_before=check_before
+                check_before=check_before,
+                check_timeout=check_timeout,
+                check_retries=check_retries
             )
 
             if status["changes"] > 0:
@@ -193,14 +241,13 @@ def main():
         else:
             module.fail_json(
                 msg=f"Unable to find the host {hostname}")
-        
+
     except IcingaFailedService as e:
         if e.customMessage:
             module.fail_json(msg=e.message)
         else:
             module.fail_json(
                 msg=f"One or more services are down ({e.message})")
-
 
     module.exit_json(**result)
 

@@ -1,6 +1,26 @@
 - name: "test-playbook | Set Maintenance"
   hosts: localhost
   tasks:
+    - name: "Get node status"
+      rangeid.icinga.get_state:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        hostname: "EQS-CA"
+      register: ret
+      ignore_errors: true
+
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that: ret.failed == False
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"
+
+
     - name: "Set node maintenance"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
@@ -10,9 +30,50 @@
         duration: "1m 30s"
         hostname: "EQS-CA"
         message: "Patching started"
+        services:
+          - LOAD
+      register: ret
+      ignore_errors: true
+
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that: ret.failed == False
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"
+
+
+    - name: "Get node status"
+      rangeid.icinga.get_state:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        hostname: "EQS-CA"
+      register: ret
+      ignore_errors: true
+
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that:
+        - ret.failed == False
+        - ret.host_maintenance == True
+        - ret.host_status == 0
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"
+
+
     - name: "Sleep"
       ansible.builtin.pause:
         seconds: 5
+
+
     - name: "Remove node maintenance"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
@@ -20,4 +81,42 @@
         icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
         maintenance: disabled
         hostname: "EQS-CA"
+        check_before:
+          enabled: true
+          stop_on_failed_service: false
+          retries: 1
+          timeout: 2
+      register: ret
+      ignore_errors: true
+
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that: ret.failed == False
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"
+
+    - name: "Get node status"
+      rangeid.icinga.get_state:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        hostname: "EQS-CA"
+      register: ret
+      ignore_errors: true
+
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that:
+        - ret.failed == False
+        - ret.host_maintenance == False
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"
 

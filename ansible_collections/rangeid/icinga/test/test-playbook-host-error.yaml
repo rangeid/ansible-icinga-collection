@@ -1,12 +1,24 @@
 - name: "test-playbook | Set Maintenance"
   hosts: localhost
   tasks:
-    - name: "Set node maintenance"
+    - name: "test-playbook | Set node maintenance"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
         icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
         icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
         maintenance: enabled
-        duration: "10m 30s"
+        duration: "1m 30s"
         hostname: "EQS-DOESNT-EXIST"
         message: "Patching started"
+      register: ret
+      ignore_errors: true
+
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that: ret.failed == True
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"

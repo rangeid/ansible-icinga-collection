@@ -1,14 +1,25 @@
 - name: "test-playbook | Set Maintenance"
   hosts: localhost
   tasks:
-    - name: "Set Maintenance for the node"
+    - name: "test-playbook | Set Maintenance for the entire"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
         icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
         icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
         maintenance: enabled
-        services: "*"
+        service: "*"
         duration: "1m 30s"
         hostname: "EQS-CA"
         message: "All services maintenance"
+      register: ret
 
+
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that: ret.failed == False
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"

@@ -11,10 +11,19 @@
         duration: "1m 30s"
         hostname: "EQS-CA"
         message: "Partial"
-      register: one
+      register: ret
+      ignore_errors: true
 
-    - debug:
-        msg: "{{ one }}"
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that: ret.failed == False
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"
+
 
     - name: "test-playbook | Set Maintenance for the node and services by list"
       rangeid.icinga.maintenance:
@@ -28,12 +37,20 @@
         duration: "1m 30s"
         hostname: "EQS-CA"
         message: "Partial"
-      register: two
+      register: ret
+      ignore_errors: true
 
-    - debug:
-        msg: "{{ two }}"
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
 
-    - name: "test-playbook | Set Maintenance for the node and services by list"
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that: ret.failed == False
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"
+
+    - name: "test-playbook | Set Maintenance for the node and services by list (fails)"
       rangeid.icinga.maintenance:
         icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
         icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
@@ -45,7 +62,15 @@
         duration: "1m 30s"
         hostname: "EQS-CA"
         message: "Partial"
-      register: three
+      register: ret
+      ignore_errors: true
 
-    - debug:
-        msg: "{{ three }}"
+    - name: "test-playbook | Dump result"
+      ansible.builtin.debug:
+        msg: "{{ ret }}"
+
+    - name: "test-playbook | evaluate test"
+      ansible.builtin.assert:
+        that: ret.failed == True
+        fail_msg: "Result not expected"
+        success_msg: "Result as expected"
