@@ -70,7 +70,6 @@ def main():
         supports_check_mode=False
     )
 
-
     icinga_server = module.params.get("icinga_server")
     icinga_username = module.params.get("icinga_username")
     icinga_password = module.params.get("icinga_password")
@@ -116,7 +115,6 @@ def main():
         result["host_maintenance"] = status["host_maintenance"]
         result["host_status"] = status["host_status"]
         # result["services"] = status["services"]
-
 
     except IcingaAuthenticationException:
         module.fail_json(
