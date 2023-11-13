@@ -5,8 +5,39 @@ icinga is an Ansible collection to manage maintenance and checks in Icinga. The 
 * check maintenance status
 * check the status of a host's service
 
-### rangeid.icinga.maintenance: set host and services maintenance
+## rangeid.icinga.maintenance - Manage maintenance in Icinga2
 
+Manages scheduling maintenance and downtime for hosts and services in Icinga2.
+
+### Requirements
+
+- Icinga2 API access
+- Valid credentials for Icinga2 API 
+
+### Options
+
+| Parameter | Required | Default | Choices | Comments |
+|---|---|---|---|---|
+| icinga_server | yes | | | The URL for the Icinga2 API. Must start with 'https://' |
+| icinga_username | yes | | | Icinga2 API username |
+| icinga_password | yes | | | Icinga2 API password |  
+| hostname | yes | | | Name of the host to schedule maintenance for |
+| service | no | | | Name or pattern of services to schedule maintenance for |
+| services | no | | | List of service names to schedule maintenance for |
+| maintenance | yes | | <ul><li>enabled</li><li>disabled</li></ul> | Whether to enable or disable maintenance |
+| duration | no | | | How long to schedule maintenance for, in seconds or a time string like '30m' or '1h' |
+| message | no | | | Custom downtime message |
+
+### Return Values
+
+| Key | Description | Returned | Type | 
+|---|---|---|---|
+| changed | If maintenance was scheduled or removed | always | bool |
+| failed | If module failed | always | bool | 
+| message | Summary of actions performed | always | str |
+| services | List of services maintenance was scheduled for | when services specified | list |
+
+### Examples
 #### Node maintenance
     - name: "test-playbook | Set node maintenance"
       rangeid.icinga.maintenance:
