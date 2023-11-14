@@ -81,6 +81,20 @@ class IcingaMiniClass():
 
 
     def _get_service_status(self, host: str, service: str):  
+        """
+        Get the status of a specific service on a host.
+
+        This method sends a request to the Icinga API to retrieve the status of a specific service on a host.
+        The status is stored in the `last_service_status` attribute and also returned by the method.
+
+        Args:
+            host (str): The name of the host where the service is running.
+            service (str): The name of the service whose status is to be retrieved.
+
+        Returns:
+            int: The status of the service. The status is an integer where 0 indicates an OK state, 
+                 1 indicates a WARNING state, 2 indicates a CRITICAL state, and 3 indicates an UNKNOWN state.
+        """
         self.last_service_status = 3
         _data = {
             "type": "Service",
