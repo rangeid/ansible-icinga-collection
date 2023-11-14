@@ -259,19 +259,24 @@ class IcingaMiniClass():
         return _response["results"]
 
     def _get_invalid_services(self, services: list = [], check_against: list = []):
-        """
-        Compare real service list with list provided by the user in order to check if all services exist
-        :param services: real service list
-        :param check_against: user provide service list
-        :return: list of invalid services
-        """
-        _ret = []
+            """
+            Returns a list of services that are not present in the given list of services.
 
-        for _in_service in check_against:
-            if not _in_service in services:
-                _ret.append(_in_service)
+            Args:
+                services (list): A list of services to check against.
+                check_against (list): A list of services to check for.
 
-        return _ret
+            Returns:
+                list: A list of services that are not present in the given list of services.
+            """
+
+            _ret = []
+
+            for _in_service in check_against:
+                if not _in_service in services:
+                    _ret.append(_in_service)
+
+            return _ret
 
     def clear_maintenance_mode(self, host: str,
                                services: str = "all",
