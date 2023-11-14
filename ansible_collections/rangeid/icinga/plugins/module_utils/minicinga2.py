@@ -31,13 +31,29 @@ class IcingaMiniClass():
     #                     data=json.dumps(data), timeout=30)
 
     def _check_all_services(self, host, timeout: int = 10, retries: int = 0, except_on_failure: bool = False):
-        """
-        Check all host's services and return only on timeout (with error) or when
-        all services are green
+        """Check status of all services for a host.
+
+        Checks the status of all active services associated with the given host. 
+        Waits up to the timeout for all services to be OK, retrying failed checks
+        up to the specified number of retries.
+
+        Args:
+            host (str): The name of the host to check services for.
+            timeout (int, optional): Timeout in seconds to wait for all checks. Default 10.
+            retries (int, optional): Number of retries for failed service checks. Default 0.
+            except_on_failure (bool, optional): Whether to raise an exception if any
+                service check fails. Default False.
+
+        Returns:
+            dict: Dictionary containing lists of failed and successful service checks.
+
+        Raises:
+            IcingaFailedService: If any service check fails and except_on_failure is True.
+
         """
         _ret = dict(
-            failed = [],
-            success = []
+            failed=[],
+            success=[]
         )
 
         _data = {
@@ -55,8 +71,8 @@ class IcingaMiniClass():
                     pass
                 else:
                     result = self.check_service(host=host,
-                                        service=_service["attrs"]["name"],
-                                        timeout=timeout, retries=retries, except_on_failure=except_on_failure)
+                                                service=_service["attrs"]["name"],
+                                                timeout=timeout, retries=retries, except_on_failure=except_on_failure)
                     if result == False:
                         _ret["failed"].append(_service["attrs"]["name"])
                     else:
@@ -64,7 +80,7 @@ class IcingaMiniClass():
         return _ret
 
 
-    def _get_service_status(self, host: str, service: str):
+    def _get_service_status(self, host: str, service: str):  
         self.last_service_status = 3
         _data = {
             "type": "Service",
@@ -80,11 +96,20 @@ class IcingaMiniClass():
 
     def _get_service_list(self, host: str, service_pattern: str = "*"):
         """
-        Get list ov services based on hots and provided pattern
-        :param host: Icinga hostname
-        :param service_pattern: pattern in glob format
-        :return: list of services
+        Get list of services for a host matching a pattern.
+        
+        Fetches all services for the given host that match the provided glob pattern.
+        Sends a request to the Icinga API to retrieve services filtered by the host 
+        name and pattern. Returns a list of matching service names.
+        
+        Args:
+            host (str): The Icinga host name
+            service_pattern (str): Glob pattern to match services. Defaults to "*" to match all. 
+        
+        Returns:
+            list: List of service names matching the pattern for the given host.
         """
+
         _data = {
             "type": "Service",
             "filter": f"\"{host}\"==host.name && match (pattern,service.name)",
@@ -103,11 +128,24 @@ class IcingaMiniClass():
 
     def get_host_status(self, host: str = "", service: str = None):
         """
-        Get current host status
-        :param host: Icinga hostnane
-        :param service: Icinga service or services
-        :return: status response
+        Get the current status of an Icinga host, including maintenance state and service states if provided.
+        
+        Retrieves the host object from the Icinga API to determine the current state, downtime, and acknowledgement status.
+        Can also retrieve status information for specific services if provided.
+        
+        Args:
+            host (str): The name of the Icinga host to check status for
+            service (str|list): Optional name or list of service names to retrieve status for
+        
+        Returns:
+            dict: Dictionary containing status information with the following keys:
+                host_status: The current state of the host (0=Up, 1=Down, etc)
+                host_maintenance: True if the host is in maintenance/downtime
+                status: The worst state of all checked services (0=Ok, 1=Warning, etc)
+                changes: Count of status changes detected
+                changes_details: String of all status details
         """
+        
         _ret = {
             "host_status": False,
             "status": 3,
@@ -139,17 +177,26 @@ class IcingaMiniClass():
 
     def check_service(self, host: str, service: str, timeout: int = 10, retries: int = 0, except_on_failure: bool = True):
         """
-        Check a single service
-        :param host: Icinga hostnane
-        :param service: Icinga service
-        :param timeout: Check timeout, if timeout == 0, service status will not be checked
-        :param retries: Check retries. If a service is failed, after the timeout, a new check will be issued
-        :param except_on_failure: generate an exception if the service is failed after timeout and retries, otherwise
-                                  return boolean return boolean status
-        :return: true if the service is green, false if warning, critical or unknown
+        Check the status of an Icinga service on a host. 
+        
+        Forces a fresh check of the service and polls the status until timeout.
+        Retries checks if the service fails and retries are configured.
+        Returns a message string on success, raises an exception or returns False on failure.
+        
+        Parameters:
+          host (str): Hostname
+          service (str): Service name
+          timeout (int): Timeout in seconds to poll status after check
+          retries (int): Number of times to retry check if service fails
+          except_on_failure (bool): Raise exception if service fails after retries instead of returning bool
+        
+        Returns:
+          str: Success message if service ok
+          bool: False if service failed after retries and except_on_failure is False
+          Raises IcingaFailedService exception if service fails after retries and except_on_failure is True 
         """
         _retries = 0
-        while(True):
+        while (True):
             _data = {
                 "type": "Service",
                 "filter": f"host.name==\"{host}\" && service.name==\"{service}\"",
@@ -197,7 +244,7 @@ class IcingaMiniClass():
 
         return _response["results"]
 
-    def _get_invalid_services(self, services : list = [],check_against : list = []):
+    def _get_invalid_services(self, services: list = [], check_against: list = []):
         """
         Compare real service list with list provided by the user in order to check if all services exist
         :param services: real service list
@@ -225,13 +272,14 @@ class IcingaMiniClass():
             "changes_details": [],
             "services": []
         }
-        
+
         if check_before:
-            _results = self._check_all_services(host=host, retries=check_retries, timeout=check_timeout)
+            _results = self._check_all_services(
+                host=host, retries=check_retries, timeout=check_timeout)
             if len(_results["failed"]) > 0 and stop_on_failed_service:
                 failed_services = ", ".join(_results["failed"])
-                raise IcingaFailedService(f"One or more services are still failed: {failed_services}")
-
+                raise IcingaFailedService(
+                    f"One or more services are still failed: {failed_services}")
 
         _downtimes = self._get_maintenance_host_mode(host=host)
         _ret['changes'] = len(_downtimes)
@@ -249,7 +297,8 @@ class IcingaMiniClass():
                     method='POST',
                     data=_data
                 )
-                _ret['status'] = " ".join([_ret['status'], _results["results"][0]['status']]).strip()
+                _ret['status'] = " ".join(
+                    [_ret['status'], _results["results"][0]['status']]).strip()
 
         return _ret
 
@@ -265,8 +314,8 @@ class IcingaMiniClass():
 
         if check_before:
             self.check_service(host=host,
-                                service=service,
-                                timeout=check_timeout, retries=check_retries, except_on_failure=True)
+                               service=service,
+                               timeout=check_timeout, retries=check_retries, except_on_failure=True)
 
         _ret = {
             "status": "",
@@ -299,18 +348,20 @@ class IcingaMiniClass():
     def set_maintenance_mode(self, host: str,
                              duration_seconds: int = 0,
                              services: str = "all",
-                             author: str ="Ansible",
-                             comment: str ="Downtime",
+                             author: str = "Ansible",
+                             comment: str = "Downtime",
                              check_before: bool = False,
                              stop_on_failed_service: bool = False,
                              check_retries: int = 1,
                              check_timeout: int = 10):
 
         if check_before:
-            _results = self._check_all_services(host=host, retries=check_retries, timeout=check_timeout)
+            _results = self._check_all_services(
+                host=host, retries=check_retries, timeout=check_timeout)
             if len(_results["failed"]) > 0 and stop_on_failed_service:
                 failed_services = ", ".join(_results["failed"])
-                raise IcingaFailedService(f"One or more services are still failed: {failed_services}")
+                raise IcingaFailedService(
+                    f"One or more services are still failed: {failed_services}")
 
         _ret = {
             "status": "",
@@ -330,21 +381,22 @@ class IcingaMiniClass():
             "duration": duration_seconds, "child_hosts": 0
         }
 
-
-        
         # If service list were specified, check if all services exists
         if _data["all_services"] != "1":
             if isinstance(services, list):
                 _services = self._get_service_list(host=host)
             else:
-                _services = self._get_service_list(host=host, service_pattern=services)
+                _services = self._get_service_list(
+                    host=host, service_pattern=services)
 
             if isinstance(services, list):
-                _invalid_services = self._get_invalid_services(services=_services,check_against=services)
+                _invalid_services = self._get_invalid_services(
+                    services=_services, check_against=services)
                 if len(_invalid_services) > 0:
                     _invalid_services_list = ", ".join(_invalid_services)
                     _valid_services_list = ", ".join(_services)
-                    raise IcingaNoSuchObjectException(message=f"Unable to find one or more services: {_invalid_services_list}, valid services are {_valid_services_list}")
+                    raise IcingaNoSuchObjectException(
+                        message=f"Unable to find one or more services: {_invalid_services_list}, valid services are {_valid_services_list}")
 
         _results = self._send_request(
             url="/v1/actions/schedule-downtime",
@@ -355,11 +407,11 @@ class IcingaMiniClass():
         if len(_results["results"]) == 0:
             raise IcingaNoSuchObjectException()
 
-
         _services = self._get_service_list(host=host, service_pattern=services)
         if "service_downtimes" in _results["results"][0]:
             _ret["changes"] = len(_results["results"][0]["service_downtimes"])
-            _ret["statuses"].append(_results["results"][0]["service_downtimes"])
+            _ret["statuses"].append(
+                _results["results"][0]["service_downtimes"])
 
         _ret["statuses"] = []
         _ret["statuses"].append(_results["results"][0]["status"])
@@ -398,13 +450,17 @@ class IcingaMiniClass():
     def _send_request(self, url: str, method: str, data: str = ""):
         _headers = self.headers
         _headers.update({'X-HTTP-Method-Override': method})
+        
+        try:
+            _response = requests.post(
+                url=f"{self.url}{url}",
+                data=self.module.jsonify(data),
+                headers=_headers,
+                verify=self.certpath
+            )
 
-        _response = requests.post(
-            url=f"{self.url}{url}",
-            data=self.module.jsonify(data),
-            headers=_headers,
-            verify=self.certpath
-        )
+        except requests.exceptions.ConnectionError as e:
+            raise IcingaConnectionException(f"Could not connect to Icinga server: {e}")
 
         if _response.status_code in [401, 403]:
             raise IcingaAuthenticationException
@@ -418,10 +474,23 @@ class IcingaMiniClass():
 
         return _response.json()
 
+class IcingaConnectionException(Exception):
+    customMessage = False
+    defaultMessage = "Unable to connect to icinga server"
+
+    def __init__(self, message=None):
+        if message == None:
+            self.message = self.defaultMessage
+        else:
+            self.message = message
+            self.customMessage = True
+        super().__init__(self.message)
+
 
 class IcingaAuthenticationException(Exception):
     customMessage = False
     defaultMessage = "Unable to authenticate"
+
     def __init__(self, message=None):
         if message == None:
             self.message = self.defaultMessage
@@ -434,6 +503,7 @@ class IcingaAuthenticationException(Exception):
 class IcingaFailedService(Exception):
     customMessage = False
     defaultMessage = "One or more services are down"
+
     def __init__(self, message=None):
         if message == None:
             self.message = self.defaultMessage
@@ -446,6 +516,7 @@ class IcingaFailedService(Exception):
 class IcingaNoSuchObjectException(Exception):
     customMessage = False
     defaultMessage = "Unable to find the object"
+
     def __init__(self, message=None):
         if message == None:
             self.message = self.defaultMessage
@@ -453,7 +524,6 @@ class IcingaNoSuchObjectException(Exception):
             self.message = message
             self.customMessage = True
         super().__init__(self.message)
-
 
 
 class IcingaStatus():

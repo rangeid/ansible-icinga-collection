@@ -4,7 +4,7 @@
 
 from __future__ import absolute_import, division, print_function
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.rangeid.icinga.plugins.module_utils.minicinga2 import IcingaMiniClass, IcingaAuthenticationException, IcingaNoSuchObjectException, IcingaFailedService
+from ansible_collections.rangeid.icinga.plugins.module_utils.minicinga2 import IcingaMiniClass, IcingaAuthenticationException, IcingaNoSuchObjectException, IcingaFailedService, IcingaConnectionException
 
 __metaclass__ = type
 
@@ -103,6 +103,13 @@ def main():
             message=status,
             service_status=icinga_client.get_last_service_status()
         )
+
+    except IcingaConnectionException as e:
+        if e.customMessage:
+            module.fail_json(msg=e.message)
+        else:
+            module.fail_json(
+                msg=f"Unable to connect to or find the Icinga URL {icinga_server}")
 
     except IcingaAuthenticationException:
         module.fail_json(

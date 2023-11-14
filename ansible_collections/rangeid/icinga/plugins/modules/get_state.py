@@ -7,7 +7,7 @@ from ansible.module_utils._text import to_text
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.urls import fetch_url, basic_auth_header
 from ansible_collections.rangeid.icinga.plugins.module_utils.time_utils import time_utils
-from ansible_collections.rangeid.icinga.plugins.module_utils.minicinga2 import IcingaMiniClass, IcingaAuthenticationException, IcingaNoSuchObjectException, IcingaFailedService
+from ansible_collections.rangeid.icinga.plugins.module_utils.minicinga2 import IcingaMiniClass, IcingaAuthenticationException, IcingaNoSuchObjectException, IcingaFailedService, IcingaConnectionException
 
 __metaclass__ = type
 
@@ -115,6 +115,13 @@ def main():
         result["host_maintenance"] = status["host_maintenance"]
         result["host_status"] = status["host_status"]
         # result["services"] = status["services"]
+
+    except IcingaConnectionException as e:
+        if e.customMessage:
+            module.fail_json(msg=e.message)
+        else:
+            module.fail_json(
+                msg=f"Unable to connect to or find the Icinga URL {icinga_server}")
 
     except IcingaAuthenticationException:
         module.fail_json(
