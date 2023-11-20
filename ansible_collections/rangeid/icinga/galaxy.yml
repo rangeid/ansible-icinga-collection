@@ -1,6 +1,6 @@
 namespace: rangeid
 name: icinga
-version: 0.0.1
+version: 0.0.2
 readme: README.md
 
 authors:
@@ -12,3 +12,12 @@ license:
 
 repository: "https://github.com/rangeid/ansible-icinga-collection"
 issues: "https://github.com/rangeid/ansible-icinga-collection/issues"
+documentation: "https://github.com/rangeid/ansible-icinga-collection/blob/master/README.md"
+
+tags:
+    - monitoring
+    - icinga
+
+dependencies:
+    "community.general" : "*"
+

@@ -213,3 +213,27 @@ or, when failed_when is set to false:
         failed_when_result: false
         message: One or more services are down (Service TEST-OPENXPKI state is CRITICAL after timeout of 10 seconds)
         service_status: 2.0
+
+### rangeid.icinga.get_hostgroup: Get hostgroup host list
+
+    - name: "Get node status"
+      rangeid.icinga.get_state:
+        icinga_server: "{{ lookup('ansible.builtin.env', 'ICINGA_SERVER') }}"
+        icinga_username: "{{ lookup('ansible.builtin.env', 'ICINGA_USERNAME') }}"
+        icinga_password: "{{ lookup('ansible.builtin.env', 'ICINGA_PASSWORD') }}"
+        hostgroup: "DNS"
+      register: ret
+      ignore_errors: true
+
+returns:
+
+    TASK [test-playbook | Dump result] **************
+    ok: [localhost] =>
+      msg:
+        changed: false
+        failed: false
+        hosts:
+        - EQS-DNS-B
+        - EQS-DNS-C
+        - EQS-DNS-A
+        - EQS-DNS-D
