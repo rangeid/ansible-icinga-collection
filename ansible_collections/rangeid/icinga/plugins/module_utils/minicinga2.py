@@ -244,6 +244,15 @@ class IcingaMiniClass():
                     return False
 
     def _get_maintenance_host_mode(self, host: str = ""):
+        """
+        Gets the maintenance mode status of a host in Icinga2.
+
+        Args:
+            host (str): The name of the host to get the maintenance mode status of.
+
+        Returns:
+            bool: True if the host is in maintenance mode, False otherwise.
+        """
         _data = {
             "type": "Host",
             "filter": f"host.name==\"{host}\"",
@@ -259,24 +268,24 @@ class IcingaMiniClass():
         return _response["results"]
 
     def _get_invalid_services(self, services: list = [], check_against: list = []):
-            """
-            Returns a list of services that are not present in the given list of services.
+        """
+        Returns a list of services that are not present in the given list of services.
 
-            Args:
-                services (list): A list of services to check against.
-                check_against (list): A list of services to check for.
+        Args:
+            services (list): A list of services to check against.
+            check_against (list): A list of services to check for.
 
-            Returns:
-                list: A list of services that are not present in the given list of services.
-            """
+        Returns:
+            list: A list of services that are not present in the given list of services.
+        """
 
-            _ret = []
+        _ret = []
 
-            for _in_service in check_against:
-                if not _in_service in services:
-                    _ret.append(_in_service)
+        for _in_service in check_against:
+            if not _in_service in services:
+                _ret.append(_in_service)
 
-            return _ret
+        return _ret
 
     def clear_maintenance_mode(self, host: str,
                                services: str = "all",
@@ -373,6 +382,27 @@ class IcingaMiniClass():
                              stop_on_failed_service: bool = False,
                              check_retries: int = 1,
                              check_timeout: int = 10):
+        """
+        Sets a host or service into maintenance mode in Icinga2.
+
+        Args:
+            host (str): The name of the host to set into maintenance mode.
+            duration_seconds (int, optional): The duration of the maintenance window in seconds. Defaults to 0 (indefinite).
+            services (str, optional): The name of the service(s) to set into maintenance mode. Defaults to "all".
+            author (str, optional): The name of the user who initiated the maintenance window. Defaults to "Ansible".
+            comment (str, optional): A comment to describe the reason for the maintenance window. Defaults to "Downtime".
+            check_before (bool, optional): Whether to check the status of all services before setting them into maintenance mode. Defaults to False.
+            stop_on_failed_service (bool, optional): Whether to stop setting services into maintenance mode if any of them fail the check. Defaults to False.
+            check_retries (int, optional): The number of times to retry the service check before giving up. Defaults to 1.
+            check_timeout (int, optional): The timeout for the service check in seconds. Defaults to 10.
+
+        Raises:
+            IcingaNoSuchObjectException: If the specified host or service does not exist in Icinga2.
+            IcingaFailedService: If one or more services are still failed and stop_on_failed_service is True.
+
+        Returns:
+            dict: A dictionary containing the status of the operation, the number of changes made, and any additional details.
+        """
 
         if check_before:
             _results = self._check_all_services(
