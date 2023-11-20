@@ -114,7 +114,7 @@ def main():
         message=dict(required=False, type="str"),
         duration=dict(required=False, type="str"),
         hostname=dict(required=False, aliases=["name"]),
-        hostgroup=dict(required=False),
+        # hostgroup=dict(required=False),
         check_before=dict(required=False, type="dict", options=dict(
             enabled=dict(required=False, default=False, type="bool"),
             stop_on_failed_service=dict(required=False, default=False, type="bool"),
@@ -138,7 +138,7 @@ def main():
     )
 
     hostname = module.params.get("hostname")
-    hostgroup = module.params.get("hostgroup")
+    # hostgroup = module.params.get("hostgroup")
 
     icinga_server = module.params.get("icinga_server")
     icinga_username = module.params.get("icinga_username")
@@ -162,10 +162,10 @@ def main():
         check_timeout = 10
 
     # validate_certs = module.params.get("validate_certs")
-    if hostname and hostgroup:
-        module.fail_json(
-            "Specify hostname/name or hostgroup")
-
+    # if hostname and hostgroup:
+    #     module.fail_json(
+    #         "Specify hostname/name or hostgroup")
+        
     if service and services:
         module.fail_json(
             "Specify service or services, both are not supported")
@@ -195,18 +195,19 @@ def main():
     if services is not None:
         service = services
     try:
+        params = {
+            'host': hostname,
+            'duration_seconds': duration_seconds,
+            'services': service,
+            'author': author,
+            'comment': message,
+            'check_before': check_before,
+            'stop_on_failed_service': stop_on_failed_service,
+            'check_retries': check_retries
+        }
+
         if maintenance == "enabled":
-            status = icinga_client.set_maintenance_mode(
-                host=hostname,
-                duration_seconds=duration_seconds,
-                services=service,
-                author=author,
-                comment=message,
-                check_before=check_before,
-                stop_on_failed_service=stop_on_failed_service,
-                check_retries=check_retries,
-                check_timeout=check_timeout
-            )
+            status = icinga_client.set_maintenance_mode(**params)
 
             if status["changes"] > 0:
                 result['changed'] = True

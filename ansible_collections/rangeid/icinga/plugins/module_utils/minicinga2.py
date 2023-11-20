@@ -286,6 +286,37 @@ class IcingaMiniClass():
                 _ret.append(_in_service)
 
         return _ret
+    
+    def get_hosts_by_group(self, 
+                           hostgroup: str = ""
+                           ) -> list:
+        """
+        Get a list of hosts in a hostgroup.
+
+        Args:
+            hostgroup (str): The name of the hostgroup to get the list of hosts for.
+
+        Returns:
+            list: A list of hosts in the hostgroup.
+        """
+        _ret = []
+
+        _data = {
+            "type": "Host",
+            "filter": f"\"{hostgroup}\" in host.groups",
+            "attrs": ["name"],
+            "pretty": True
+        }
+        _response = self._send_request(
+            url="/v1/objects/hosts",
+            method="GET",
+            data=_data,
+        )
+
+        for _host in _response["results"]:
+            _ret.append(_host["attrs"]["name"])
+
+        return _ret
 
     def clear_maintenance_mode(self, host: str,
                                services: str = "all",
