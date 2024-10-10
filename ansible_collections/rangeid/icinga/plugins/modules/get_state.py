@@ -35,6 +35,12 @@ options:
     - The Icinga user's password
     type: str
     required: true
+  validate_certs:
+    description:
+    - If set to False, SSL certificates will not be validated
+    type: bool
+    required: false
+    default: true
   service:
     description:
     - regexp or name of involved services. If omitted, only the host will be checked. If all or "*", all services 
@@ -55,6 +61,7 @@ def main():
         hostgroup=dict(required=False),
         service=dict(required=False, type="str"),
         services=dict(required=False, type="list", elements="str"),
+        validate_certs=dict(default=True, type="bool"),
     )
 
     result = dict(
@@ -77,6 +84,7 @@ def main():
     hostgroup = module.params.get("hostgroup")
     service = module.params.get("service")
     services = module.params.get("services")
+    validate_certs = module.params.get("validate_certs")
 
     # validate_certs = module.params.get("validate_certs")
     if hostname and hostgroup:

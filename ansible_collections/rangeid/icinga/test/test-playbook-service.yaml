@@ -13,6 +13,8 @@
         message: "Partial"
       register: ret
       ignore_errors: true
+      environment:
+        REQUESTS_CA_BUNDLE: "/usr/local/share/ca-certificates/"
 
     - name: "test-playbook | Dump result"
       ansible.builtin.debug:

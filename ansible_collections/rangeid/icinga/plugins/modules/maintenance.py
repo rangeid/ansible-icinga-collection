@@ -35,6 +35,12 @@ options:
         - The Icinga user's password
         type: str
         required: true
+    validate_certs:
+        description:
+        - If set to False, SSL certificates will not be validated
+        type: bool
+        required: false
+        default: true
     hostname:
         description:
         - Icinga host object name
@@ -114,6 +120,7 @@ def main():
         message=dict(required=False, type="str"),
         duration=dict(required=False, type="str"),
         hostname=dict(required=False, aliases=["name"]),
+        validate_certs=dict(default=True, type="bool"),
         # hostgroup=dict(required=False),
         check_before=dict(required=False, type="dict", options=dict(
             enabled=dict(required=False, default=False, type="bool"),
@@ -143,6 +150,7 @@ def main():
     icinga_server = module.params.get("icinga_server")
     icinga_username = module.params.get("icinga_username")
     icinga_password = module.params.get("icinga_password")
+    validate_certs = module.params.get("validate_certs")
     maintenance = module.params.get("maintenance")
     author = module.params.get("author")
     service = module.params.get("service")
@@ -190,7 +198,8 @@ def main():
     icinga_client = IcingaMiniClass(module=module,
                                     url=icinga_server,
                                     username=icinga_username,
-                                    password=icinga_password)
+                                    password=icinga_password,
+                                    validate_certs=validate_certs)
 
     if services is not None:
         service = services
