@@ -7,21 +7,21 @@ import json
 
 
 class IcingaMiniClass():
-    def __init__(self, module, url, username, password):
+    def __init__(self, module, url, username, password, validate_certs=True):
         self.url = url
         self.username = username
         self.password = password
         self.module = module
         self.last_service_status = 3
+        self.validate_certs = validate_certs
 
         self.headers = {
             'Authorization': basic_auth_header(self.username, self.password),
             'Accept': 'application/json'
         }
 
-        self.certpath = "/etc/ssl/certs/ca-certificates.crt"
-        if os.path.isfile("/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"):
-            self.certpath = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
+        if self.url.endswith("/"):
+            self.url = self.url[:-1]
 
     def get_last_service_status(self):
         return self.last_service_status
@@ -532,14 +532,22 @@ class IcingaMiniClass():
         _headers.update({'X-HTTP-Method-Override': method})
         
         try:
-            _response = requests.post(
-                url=f"{self.url}{url}",
-                data=self.module.jsonify(data),
-                headers=_headers,
-                verify=self.certpath
-            )
+            if not self.validate_certs:
+                _response = requests.post(
+                    url=f"{self.url}{url}",
+                    data=self.module.jsonify(data),
+                    headers=_headers,
+                    verify=self.validate_certs
+                )
+            else:
+                _response = requests.post(
+                    url=f"{self.url}{url}",
+                    data=self.module.jsonify(data),
+                    headers=_headers)
 
         except requests.exceptions.ConnectionError as e:
+            raise IcingaConnectionException(f"Could not connect to Icinga server: {e}")
+        except OSError as e:
             raise IcingaConnectionException(f"Could not connect to Icinga server: {e}")
 
         if _response.status_code in [401, 403]:

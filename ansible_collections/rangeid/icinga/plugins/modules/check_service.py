@@ -38,6 +38,12 @@ options:
     - The service name
     type: str
     required: true
+  validate_certs:
+    description:
+    - If set to False, SSL certificates will not be validated
+    type: bool
+    required: false
+    default: true
   timeout:
     description:
     - wait time after the forced check. If zero the service check will be
@@ -56,6 +62,7 @@ def main():
         service=dict(required=True, type="str"),
         hostname=dict(required=True, aliases=["name"]),
         timeout=dict(default=0, type="int", aliases=["timeout_seconds"]),
+        validate_certs=dict(default=True, type="bool"),
     )
 
     result = dict(
@@ -77,6 +84,7 @@ def main():
     icinga_password = module.params.get("icinga_password")
     service = module.params.get("service")
     timeout = module.params.get("timeout")
+    validate_certs = module.params.get("validate_certs")
 
     module.run_command_environ_update = dict(
         LANG="C.UTF-8", LC_ALL="C.UTF-8",
@@ -89,7 +97,8 @@ def main():
     icinga_client = IcingaMiniClass(module=module,
                                     url=icinga_server,
                                     username=icinga_username,
-                                    password=icinga_password)
+                                    password=icinga_password,
+                                    validate_certs=validate_certs)
 
     try:
         status = icinga_client.check_service(

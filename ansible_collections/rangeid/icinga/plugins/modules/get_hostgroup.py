@@ -16,6 +16,7 @@ def main():
         icinga_username=dict(type='str', required=True),
         icinga_password=dict(type='str', required=True, no_log=True),
         hostgroup=dict(type='str', required=True),
+        validate_certs=dict(type='bool', default=True),
     )
 
     result = dict(
@@ -32,12 +33,14 @@ def main():
     icinga_username = module.params.get("icinga_username")
     icinga_password = module.params.get("icinga_password")
     hostgroup = module.params.get("hostgroup")
+    validate_certs = module.params.get("validate_certs")
 
     try:
         icinga_client = IcingaMiniClass(module=module,
                                         url=icinga_server,
                                         username=icinga_username,
-                                        password=icinga_password)
+                                        password=icinga_password,
+                                        validate_certs=validate_certs)
 
         result['hosts'] = icinga_client.get_hosts_by_group(hostgroup)
 
