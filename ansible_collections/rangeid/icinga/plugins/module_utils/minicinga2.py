@@ -255,8 +255,8 @@ class IcingaMiniClass():
         """
         _data = {
             "type": "Host",
-            "filter": f"host.name==\"{host}\"",
-            "attrs": ["end_time"],
+            "filter": f"host.name == \"{host}\"",
+            "attrs": ["end_time","service_name"],
             "pretty": True
         }
         _response = self._send_request(
@@ -343,12 +343,15 @@ class IcingaMiniClass():
         _downtimes = self._get_maintenance_host_mode(host=host)
         _ret['changes'] = len(_downtimes)
 
+        # Split the operation, before the services, then the hosts
         if len(_downtimes) > 0:
             for _downtime in _downtimes:
+                if _downtime["attrs"]["service_name"] == "":
+                    continue
+                
                 _data = {
                     "downtime": _downtime["name"],
                     "type": "Downtime",
-                    # "filter": f"host.name==\"{host}\"",
                 }
 
                 _results = self._send_request(
@@ -358,6 +361,23 @@ class IcingaMiniClass():
                 )
                 _ret['status'] = " ".join(
                     [_ret['status'], _results["results"][0]['status']]).strip()
+
+            for _downtime in _downtimes:
+                if _downtime["attrs"]["service_name"] != "":
+                    continue
+                _data = {
+                    "downtime": _downtime["name"],
+                    "type": "Downtime",
+                }
+
+                _results = self._send_request(
+                    url="/v1/actions/remove-downtime",
+                    method='POST',
+                    data=_data
+                )
+                _ret['status'] = " ".join(
+                    [_ret['status'], _results["results"][0]['status']]).strip()
+
 
         return _ret
 
