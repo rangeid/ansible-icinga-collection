@@ -204,18 +204,18 @@ def main():
     if services is not None:
         service = services
     try:
-        params = {
-            'host': hostname,
-            'duration_seconds': duration_seconds,
-            'services': service,
-            'author': author,
-            'comment': message,
-            'check_before': check_before,
-            'stop_on_failed_service': stop_on_failed_service,
-            'check_retries': check_retries
-        }
-
         if maintenance == "enabled":
+            params = {
+                'host': hostname,
+                'duration_seconds': duration_seconds,
+                'services': service,
+                'author': author,
+                'comment': message,
+                'check_before': check_before,
+                'stop_on_failed_service': stop_on_failed_service,
+                'check_retries': check_retries
+            }
+
             status = icinga_client.set_maintenance_mode(**params)
 
             if status["changes"] > 0:
