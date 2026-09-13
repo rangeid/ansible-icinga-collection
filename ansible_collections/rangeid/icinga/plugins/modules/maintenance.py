@@ -152,7 +152,7 @@ def main():
     icinga_password = module.params.get("icinga_password")
     validate_certs = module.params.get("validate_certs")
     maintenance = module.params.get("maintenance")
-    author = module.params.get("author")
+    author = module.params.get("author", "Ansible")
     service = module.params.get("service")
     services = module.params.get("services")
     message = module.params.get("message")
@@ -233,7 +233,8 @@ def main():
                 services=service,
                 check_before=check_before,
                 check_timeout=check_timeout,
-                check_retries=check_retries
+                check_retries=check_retries,
+                author=author
             )
 
             if status["changes"] > 0:

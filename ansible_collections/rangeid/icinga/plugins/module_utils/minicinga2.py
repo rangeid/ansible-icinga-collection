@@ -323,8 +323,43 @@ class IcingaMiniClass():
                                check_before: bool = False,
                                stop_on_failed_service: bool = False,
                                check_retries: int = 1,
-                               check_timeout: int = 10
+                               check_timeout: int = 10,
+                               author: str = ""
                                ) -> bool:
+
+        """
+        Clear maintenance mode (downtimes) for a host and its services.
+        This method removes scheduled downtimes for a specified host and optionally its services.
+        It can perform health checks before clearing downtimes and handles service and host 
+        downtimes separately, removing service downtimes first, then host downtimes.
+        Args:
+            host (str): The name of the host to clear maintenance mode for.
+            services (str, optional): The services to clear maintenance mode for. 
+                Defaults to "all".
+            check_before (bool, optional): Whether to check service status before 
+                clearing maintenance mode. Defaults to False.
+            stop_on_failed_service (bool, optional): Whether to stop and raise an 
+                exception if any service check fails. Defaults to False.
+            check_retries (int, optional): Number of retries for service checks. 
+                Defaults to 1.
+            check_timeout (int, optional): Timeout in seconds for service checks. 
+                Defaults to 10.
+            author (str, optional): Filter downtimes by author. Only downtimes created 
+                by this author will be removed. Defaults to "" (no filter).
+        Returns:
+            bool: A dictionary containing:
+                - status (str): Combined status messages from downtime removal operations
+                - changes (int): Number of downtimes that were removed
+                - changes_details (list): Details about the changes (currently unused)
+                - services (list): List of affected services (currently unused)
+        Raises:
+            IcingaFailedService: If check_before is True, stop_on_failed_service is True,
+                and one or more services are in a failed state.
+        Note:
+            The method processes service downtimes before host downtimes to ensure
+            proper dependency handling.
+        """
+
         _ret = {
             "status": "",
             "changes": 0,
@@ -349,6 +384,9 @@ class IcingaMiniClass():
                 if _downtime["attrs"]["service_name"] == "":
                     continue
                 
+                if author != "" and _downtime["attrs"]["author"] != author:
+                    continue
+
                 _data = {
                     "downtime": _downtime["name"],
                     "type": "Downtime",
